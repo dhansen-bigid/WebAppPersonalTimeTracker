@@ -1,0 +1,1883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relationship Intel</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════════
+   DESIGN SYSTEM
+═══════════════════════════════════════════════ */
+:root {
+  --bg:        #0a0c0f;
+  --bg2:       #111418;
+  --bg3:       #181c22;
+  --border:    #242830;
+  --border2:   #2e3440;
+  --text:      #e8eaf0;
+  --text2:     #8b92a0;
+  --text3:     #555d6b;
+  --accent:    #4f8ef7;
+  --accent-dim:#1e3a6e;
+  --green:     #3ecf8e;
+  --green-dim: #0f3326;
+  --amber:     #f59e0b;
+  --amber-dim: #3d2800;
+  --red:       #f05252;
+  --red-dim:   #3d1010;
+  --mono:      "IBM Plex Mono", monospace;
+  --sans:      "IBM Plex Sans", sans-serif;
+  --radius:    4px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 13px; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ══════════════════════════════════════════════
+   SCREENS
+══════════════════════════════════════════════ */
+
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ══════════════════════════════════════════════
+   SETUP / AUTH SCREEN
+══════════════════════════════════════════════ */
+#screen-setup {
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--bg);
+}
+
+.setup-card {
+  width: 100%;
+  max-width: 560px;
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+}
+
+.setup-logo {
+  padding: 32px 36px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.setup-logo .wordmark {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.setup-logo .wordmark span { color: var(--accent); }
+
+.setup-logo .tagline {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--mono);
+  margin-top: 4px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.setup-body { padding: 28px 36px; }
+
+.setup-step {
+  margin-bottom: 24px;
+  display: flex;
+  gap: 16px;
+}
+.step-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 1px;
+}
+.step-content h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.step-content p {
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+.step-content a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.step-content a:hover { text-decoration: underline; }
+.step-content code {
+  font-family: var(--mono);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 0 4px;
+  border-radius: 2px;
+  font-size: 10px;
+  color: var(--amber);
+}
+
+.setup-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+.field-group { margin-bottom: 16px; }
+.field-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 6px;
+}
+.field-input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 9px 12px;
+  outline: none;
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+}
+.field-input:focus { border-color: var(--accent); }
+.field-input::placeholder { color: var(--text3); }
+
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.btn-primary {
+  width: 100%;
+  padding: 11px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: opacity 0.15s, transform 0.1s;
+  margin-top: 8px;
+}
+.btn-primary:hover { opacity: 0.88; }
+.btn-primary:active { transform: scale(0.99); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.setup-error {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: var(--red-dim);
+  border: 1px solid var(--red);
+  border-radius: var(--radius);
+  font-size: 11px;
+  color: var(--red);
+  display: none;
+}
+
+/* ══════════════════════════════════════════════
+   LOADING SCREEN
+══════════════════════════════════════════════ */
+#screen-loading {
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.loading-bar-wrap {
+  width: 320px;
+  height: 2px;
+  background: var(--border2);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.loading-bar {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.3s ease;
+  border-radius: 1px;
+}
+.loading-status {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  text-align: center;
+  letter-spacing: 0.06em;
+}
+.loading-title {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text2);
+}
+
+/* ══════════════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════════════ */
+#screen-app {
+  flex-direction: column;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 20px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  gap: 20px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.topbar-wordmark {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.topbar-wordmark span { color: var(--accent); }
+
+.topbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border2);
+  flex-shrink: 0;
+}
+
+.topbar-user {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  flex-shrink: 0;
+}
+
+.topbar-nav {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+}
+
+.nav-btn {
+  padding: 5px 14px;
+  background: transparent;
+  border: none;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text3);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.nav-btn:hover { color: var(--text); background: var(--bg3); }
+.nav-btn.active { color: var(--accent); background: var(--accent-dim); }
+
+.topbar-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ctrl-select {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  outline: none;
+}
+
+.btn-sm {
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text3);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── VIEWS ── */
+.view { display: none; flex: 1; overflow-y: auto; padding: 24px 20px; }
+.view.active { display: block; }
+
+/* ══════════════════════════════════════════════
+   KPI ROW
+══════════════════════════════════════════════ */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.kpi-tile {
+  background: var(--bg2);
+  padding: 16px 20px;
+  position: relative;
+}
+.kpi-tile::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.kpi-tile:nth-child(1)::after { background: var(--accent); }
+.kpi-tile:nth-child(2)::after { background: var(--green); }
+.kpi-tile:nth-child(3)::after { background: var(--amber); }
+.kpi-tile:nth-child(4)::after { background: var(--red); }
+.kpi-tile:nth-child(5)::after { background: var(--text3); }
+
+.kpi-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 8px;
+}
+.kpi-value {
+  font-family: var(--mono);
+  font-size: 1.7rem;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1;
+}
+.kpi-sub {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 4px;
+  font-family: var(--mono);
+}
+
+/* ══════════════════════════════════════════════
+   GRID LAYOUTS
+══════════════════════════════════════════════ */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+/* ══════════════════════════════════════════════
+   PANEL
+══════════════════════════════════════════════ */
+.panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+.panel-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.panel-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+.panel-body { padding: 16px; }
+
+/* ══════════════════════════════════════════════
+   ACCOUNT TABLE
+══════════════════════════════════════════════ */
+.tbl-wrap { overflow-x: auto; }
+
+table.acct-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.acct-tbl th {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  background: var(--bg3);
+  position: sticky;
+  top: 0;
+}
+.acct-tbl th:hover { color: var(--text2); }
+.acct-tbl th.sort-asc::after  { content: ' ↑'; color: var(--accent); }
+.acct-tbl th.sort-desc::after { content: ' ↓'; color: var(--accent); }
+
+.acct-tbl td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.acct-tbl tr:last-child td { border-bottom: none; }
+.acct-tbl tr:hover td { background: rgba(255,255,255,0.02); }
+
+.td-org { font-weight: 500; color: var(--text); }
+.td-domain { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+.bar-wrap { display: flex; align-items: center; gap: 8px; }
+.bar-track {
+  width: 80px;
+  height: 4px;
+  background: var(--border2);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  opacity: 0.8;
+}
+.num-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  white-space: nowrap;
+}
+.num-dim { color: var(--text3); }
+
+.badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 2px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s;
+}
+.badge-customer  { color: var(--green);  border-color: var(--green);  background: var(--green-dim); }
+.badge-prospect  { color: var(--amber);  border-color: var(--amber);  background: var(--amber-dim); }
+.badge-unknown   { color: var(--text3);  border-color: var(--border2); background: var(--bg3); }
+.badge-none      { color: var(--text3);  border-color: var(--border2); background: transparent; }
+
+.dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.dot-hot   { background: var(--green); box-shadow: 0 0 4px var(--green); }
+.dot-warm  { background: var(--amber); }
+.dot-cold  { background: var(--text3); }
+
+/* deal input inline */
+.deal-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border2);
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 11px;
+  width: 90px;
+  padding: 2px 4px;
+  outline: none;
+  transition: border-color 0.12s;
+}
+.deal-input:focus { border-color: var(--accent); }
+.deal-input::placeholder { color: var(--text3); }
+
+/* ══════════════════════════════════════════════
+   SEARCH / FILTERS
+══════════════════════════════════════════════ */
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  max-width: 300px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 7px 12px;
+  outline: none;
+  border-radius: var(--radius);
+  transition: border-color 0.12s;
+}
+.search-input:focus { border-color: var(--accent); }
+.search-input::placeholder { color: var(--text3); }
+
+.filter-chip {
+  padding: 5px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text3);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+.filter-chip:hover { color: var(--text2); border-color: var(--text3); }
+.filter-chip.active { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+
+.result-count {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  margin-left: auto;
+}
+
+/* ══════════════════════════════════════════════
+   SIGNAL CARDS
+══════════════════════════════════════════════ */
+.signal-grid { display: flex; flex-direction: column; gap: 6px; }
+.signal-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.12s;
+}
+.signal-row:hover { border-color: var(--border2); }
+.signal-row.hot  { border-left: 2px solid var(--green); }
+.signal-row.cold { border-left: 2px solid var(--red); opacity: 0.75; }
+.signal-name { font-weight: 500; font-size: 12px; flex: 1; min-width: 0; }
+.signal-domain { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.signal-stats {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  white-space: nowrap;
+  text-align: right;
+  line-height: 1.8;
+}
+.signal-stats strong { color: var(--text2); }
+
+/* ══════════════════════════════════════════════
+   CHARTS
+══════════════════════════════════════════════ */
+.chart-wrap { position: relative; }
+
+/* ══════════════════════════════════════════════
+   SECTION HEADER
+══════════════════════════════════════════════ */
+.sect-hdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sect-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.sect-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ══════════════════════════════════════════════
+   SETUP GUIDE MODAL
+══════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 28px 32px;
+}
+.modal h2 {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+.modal-close {
+  float: right;
+  background: none;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  margin-top: -2px;
+}
+.modal-close:hover { color: var(--text); }
+
+.guide-step {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.guide-num {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--accent);
+  margin-top: 2px;
+}
+.guide-step h4 { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.guide-step p  { font-size: 11px; color: var(--text2); line-height: 1.6; }
+.guide-step a  { color: var(--accent); text-decoration: none; }
+.guide-step a:hover { text-decoration: underline; }
+.guide-step code {
+  font-family: var(--mono);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 0 5px;
+  border-radius: 2px;
+  font-size: 10px;
+  color: var(--amber);
+}
+.guide-note {
+  margin-top: 18px;
+  padding: 12px 16px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+/* ══════════════════════════════════════════════
+   TREND BARS (accounts view)
+══════════════════════════════════════════════ */
+.sparkbar-wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 18px;
+}
+.sparkbar {
+  width: 6px;
+  background: var(--accent);
+  opacity: 0.5;
+  border-radius: 1px;
+  transition: opacity 0.12s;
+  min-height: 2px;
+}
+.sparkbar:last-child { opacity: 0.9; }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .kpi-row { grid-template-columns: repeat(3, 1fr); }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .topbar-nav { display: none; }
+}
+@media (max-width: 600px) {
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .view { padding: 16px 12px; }
+}
+
+/* ══════════════════════════════════════════════
+   ANIMATIONS
+══════════════════════════════════════════════ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.view.active .kpi-row   { animation: fadeUp 0.3s ease both; }
+.view.active .panel     { animation: fadeUp 0.35s ease both; }
+.view.active .grid-2 > *:nth-child(2) { animation-delay: 0.05s; }
+.view.active .grid-3 > *:nth-child(2) { animation-delay: 0.05s; }
+.view.active .grid-3 > *:nth-child(3) { animation-delay: 0.08s; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     SETUP / AUTH SCREEN
+═══════════════════════════════════════════ -->
+<div id="screen-setup" class="screen active">
+  <div class="setup-card">
+    <div class="setup-logo">
+      <div class="wordmark">relationship<span>.</span>intel</div>
+      <div class="tagline">Calendar-driven account intelligence · v2</div>
+    </div>
+    <div class="setup-body">
+
+      <div id="step-config">
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Configure your Google Cloud Client ID</h4>
+            <p>Paste your OAuth 2.0 Client ID below. This allows the app to request read-only access to your Google Calendar. Data stays in your browser — nothing is sent to any server.</p>
+            <p style="margin-top:8px"><a href="#" onclick="openGuide(); return false;">Step-by-step setup guide →</a></p>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Set your internal domain</h4>
+            <p>Meetings with only internal attendees will be excluded automatically.</p>
+          </div>
+        </div>
+
+        <hr class="setup-divider">
+
+        <div class="field-group">
+          <label class="field-label">Google OAuth Client ID</label>
+          <input id="inp-client-id" class="field-input" type="text"
+            placeholder="123456789-abc.apps.googleusercontent.com">
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Internal Domain</label>
+            <input id="inp-domain" class="field-input" type="text" placeholder="bigid.com">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Lookback Window</label>
+            <select id="inp-lookback" class="field-input">
+              <option value="90">90 days</option>
+              <option value="180">6 months</option>
+              <option value="365" selected>12 months</option>
+              <option value="540">18 months</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btn-signin" onclick="startAuth()">
+          Sign in with Google &amp; Load Calendar
+        </button>
+        <div class="setup-error" id="setup-error"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     LOADING SCREEN
+═══════════════════════════════════════════ -->
+<div id="screen-loading" class="screen">
+  <div class="loading-title">Loading calendar data…</div>
+  <div class="loading-bar-wrap">
+    <div class="loading-bar" id="loading-bar"></div>
+  </div>
+  <div class="loading-status" id="loading-status">Authenticating…</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     APP SCREEN
+═══════════════════════════════════════════ -->
+<div id="screen-app" class="screen">
+
+  <div class="topbar">
+    <div class="topbar-wordmark">rel<span>.</span>intel</div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-user" id="topbar-user"></div>
+    <div class="topbar-divider"></div>
+
+    <div class="topbar-nav">
+      <button class="nav-btn active" onclick="showView('overview', this)">Overview</button>
+      <button class="nav-btn" onclick="showView('accounts', this)">Accounts</button>
+      <button class="nav-btn" onclick="showView('signals', this)">Signals</button>
+      <button class="nav-btn" onclick="showView('trends', this)">Trends</button>
+    </div>
+
+    <div class="topbar-controls" style="margin-left:auto">
+      <select class="ctrl-select" id="window-select" onchange="changeWindow()">
+        <option value="90">90 days</option>
+        <option value="180">6 months</option>
+        <option value="365" selected>12 months</option>
+        <option value="540">18 months</option>
+      </select>
+      <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
+      <button class="btn-sm" onclick="openGuide()">Setup Guide</button>
+      <button class="btn-sm" onclick="signOut()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- ── OVERVIEW VIEW ── -->
+  <div id="view-overview" class="view active">
+    <div class="kpi-row" id="kpi-row"></div>
+
+    <div class="grid-3">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Top 20 by hours</span>
+          <span class="panel-meta" id="ov-window-label"></span>
+        </div>
+        <div class="panel-body">
+          <div class="chart-wrap"><canvas id="ch-top-time"></canvas></div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="panel" style="flex:1">
+          <div class="panel-header"><span class="panel-title">Top 15 by meetings</span></div>
+          <div class="panel-body">
+            <div class="chart-wrap"><canvas id="ch-top-mtgs"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="panel" style="flex:1">
+          <div class="panel-header"><span class="panel-title">Monthly hours</span></div>
+          <div class="panel-body">
+            <div class="chart-wrap"><canvas id="ch-monthly"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ACCOUNTS VIEW ── -->
+  <div id="view-accounts" class="view">
+    <div class="filter-bar">
+      <input type="text" class="search-input" id="acct-search"
+        placeholder="Search account or domain…" oninput="renderAccounts()">
+      <button class="filter-chip active" data-status="all"    onclick="setStatusFilter('all', this)">All</button>
+      <button class="filter-chip" data-status="customer"      onclick="setStatusFilter('customer', this)">Customer</button>
+      <button class="filter-chip" data-status="prospect"      onclick="setStatusFilter('prospect', this)">Prospect</button>
+      <button class="filter-chip" data-status="unknown"       onclick="setStatusFilter('unknown', this)">Unknown</button>
+      <button class="filter-chip" data-status="active90"      onclick="setStatusFilter('active90', this)">Active (90d)</button>
+      <span class="result-count" id="acct-count"></span>
+    </div>
+
+    <div class="panel">
+      <div class="tbl-wrap">
+        <table class="acct-tbl" id="acct-tbl">
+          <thead>
+            <tr>
+              <th onclick="sortAccounts('org')"           >Account</th>
+              <th onclick="sortAccounts('hours_window')"  >Hours</th>
+              <th onclick="sortAccounts('mtgs_window')"   >Meetings</th>
+              <th onclick="sortAccounts('hours_90d')"     >Hours (90d)</th>
+              <th onclick="sortAccounts('mtgs_90d')"      >Mtgs (90d)</th>
+              <th onclick="sortAccounts('last_meeting')"  >Last Meeting</th>
+              <th                                         >Status</th>
+              <th                                         >Deal $</th>
+            </tr>
+          </thead>
+          <tbody id="acct-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SIGNALS VIEW ── -->
+  <div id="view-signals" class="view">
+    <div class="grid-2" style="align-items:start">
+
+      <div>
+        <div class="sect-hdr">
+          <span class="sect-title">🔥 High Velocity</span>
+          <div class="sect-line"></div>
+          <span style="font-family:var(--mono); font-size:9px; color:var(--text3)">3+ mtgs in 90d</span>
+        </div>
+        <div class="signal-grid" id="hot-list"></div>
+      </div>
+
+      <div>
+        <div class="sect-hdr">
+          <span class="sect-title">❄️ Gone Cold</span>
+          <div class="sect-line"></div>
+          <span style="font-family:var(--mono); font-size:9px; color:var(--text3)">active in window · 0 in 90d</span>
+        </div>
+        <div class="signal-grid" id="cold-list"></div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:24px">
+      <div class="sect-hdr">
+        <span class="sect-title">💼 Pipeline Influence</span>
+        <div class="sect-line"></div>
+        <span style="font-family:var(--mono); font-size:9px; color:var(--text3)">accounts with deal $ tagged</span>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <div id="pipeline-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TRENDS VIEW ── -->
+  <div id="view-trends" class="view">
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">External meetings / month</span></div>
+        <div class="panel-body"><canvas id="ch-trend-mtgs"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">External hours / month</span></div>
+        <div class="panel-body"><canvas id="ch-trend-hrs"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <div class="panel-header">
+        <span class="panel-title">Top 15 accounts — 12mo time breakdown (grey = full window, red = 90d)</span>
+      </div>
+      <div class="panel-body" id="top15-bars"></div>
+    </div>
+  </div>
+
+</div><!-- /screen-app -->
+
+<!-- ═══════════════════════════════════════════
+     SETUP GUIDE MODAL
+═══════════════════════════════════════════ -->
+<div class="modal-overlay" id="guide-modal">
+  <div class="modal">
+    <h2>Google Cloud Setup Guide <button class="modal-close" onclick="closeGuide()">✕</button></h2>
+
+    <div class="guide-step">
+      <div class="guide-num">1</div>
+      <div>
+        <h4>Create a Google Cloud Project</h4>
+        <p>Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a>.
+        Click the project dropdown at the top → <strong>New Project</strong>. Name it anything (e.g. <em>Relationship Intel</em>). Click <strong>Create</strong>.</p>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-num">2</div>
+      <div>
+        <h4>Enable the Google Calendar API</h4>
+        <p>In your new project, go to <strong>APIs &amp; Services → Library</strong>. Search for <em>Google Calendar API</em> and click <strong>Enable</strong>.</p>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-num">3</div>
+      <div>
+        <h4>Configure the OAuth Consent Screen</h4>
+        <p>Go to <strong>APIs &amp; Services → OAuth consent screen</strong>. Choose <strong>External</strong>. Fill in App name and your email. Under <em>Scopes</em> add <code>calendar.readonly</code>. Under <em>Test users</em>, add every teammate's Google email. Save.</p>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-num">4</div>
+      <div>
+        <h4>Create an OAuth Client ID</h4>
+        <p>Go to <strong>APIs &amp; Services → Credentials → Create Credentials → OAuth client ID</strong>. Choose <strong>Web application</strong>. Under <em>Authorized JavaScript origins</em>, add the URL where this file is hosted (e.g. <code>https://yourteam.github.io</code>). If running locally add <code>http://localhost</code>. Click <strong>Create</strong> and copy the Client ID.</p>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="guide-num">5</div>
+      <div>
+        <h4>Host the file (one-time)</h4>
+        <p>The simplest option: create a free <a href="https://pages.github.com" target="_blank">GitHub Pages</a> repo, drop this HTML file in as <code>index.html</code>, enable Pages, and share the URL with your team. Each person opens it, pastes the Client ID, enters their own domain, and signs in.</p>
+      </div>
+    </div>
+
+    <div class="guide-note">
+      <strong>Privacy note:</strong> This app uses read-only calendar access. No data is sent to any server. All processing happens in the browser. Tags (Status, Deal $) are saved to each person's own browser localStorage and are never shared.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     GOOGLE IDENTITY SERVICES
+═══════════════════════════════════════════ -->
+<script src="https://accounts.google.com/gsi/client" async></script>
+
+<script>
+/* ═══════════════════════════════════════════
+   CONFIG & STATE
+═══════════════════════════════════════════ */
+const STORAGE_KEY   = 'rel_intel_tags_v2';
+const CONFIG_KEY    = 'rel_intel_config_v2';
+const INTERNAL_SKIP = ['calendar-notification@google.com'];
+
+let ACCESS_TOKEN   = null;
+let USER_EMAIL     = '';
+let USER_NAME      = '';
+let INTERNAL_DOMAIN = 'bigid.com';
+let LOOKBACK_DAYS  = 365;
+let WINDOW_DAYS    = 365;
+
+let allAccounts    = [];   // processed account objects
+let tags           = {};   // { domain: { status, deal } }
+let sortKey        = 'hours_window';
+let sortDir        = -1;
+let statusFilter   = 'all';
+
+// monthly raw data for trends charts
+let monthlyData    = [];
+
+// Chart instances (destroy before re-render)
+const charts = {};
+
+/* ═══════════════════════════════════════════
+   PERSISTENCE
+═══════════════════════════════════════════ */
+function saveTags() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tags)); } catch(e) {}
+}
+function loadTags() {
+  try { tags = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { tags = {}; }
+}
+function saveConfig(clientId, domain, lookback) {
+  try { localStorage.setItem(CONFIG_KEY, JSON.stringify({ clientId, domain, lookback })); } catch(e) {}
+}
+function loadConfig() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+    if (c.clientId) document.getElementById('inp-client-id').value = c.clientId;
+    if (c.domain)   document.getElementById('inp-domain').value   = c.domain;
+    if (c.lookback) document.getElementById('inp-lookback').value  = c.lookback;
+  } catch(e) {}
+}
+
+/* ═══════════════════════════════════════════
+   SCREEN MANAGEMENT
+═══════════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+}
+
+function showView(name, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+/* ═══════════════════════════════════════════
+   AUTH
+═══════════════════════════════════════════ */
+function startAuth() {
+  const clientId = document.getElementById('inp-client-id').value.trim();
+  const domain   = document.getElementById('inp-domain').value.trim() || 'bigid.com';
+  const lookback = parseInt(document.getElementById('inp-lookback').value) || 365;
+
+  if (!clientId) {
+    showError('Please enter your Google OAuth Client ID.');
+    return;
+  }
+
+  INTERNAL_DOMAIN = domain.toLowerCase();
+  LOOKBACK_DAYS   = lookback;
+  WINDOW_DAYS     = lookback;
+
+  saveConfig(clientId, domain, lookback);
+
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+    callback: (resp) => {
+      if (resp.error) {
+        showError('Google auth error: ' + resp.error);
+        return;
+      }
+      ACCESS_TOKEN = resp.access_token;
+      fetchUserInfo().then(() => loadCalendarData());
+    },
+    error_callback: (err) => {
+      showError('Auth failed: ' + (err.message || err.type || 'Unknown error'));
+    }
+  });
+
+  client.requestAccessToken({ prompt: 'consent' });
+}
+
+async function fetchUserInfo() {
+  const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` }
+  });
+  const d = await r.json();
+  USER_EMAIL = d.email || '';
+  USER_NAME  = d.name  || d.email || '';
+}
+
+function signOut() {
+  ACCESS_TOKEN = null;
+  USER_EMAIL = '';
+  allAccounts = [];
+  Object.keys(charts).forEach(k => { try { charts[k].destroy(); } catch(e){} delete charts[k]; });
+  showScreen('setup');
+}
+
+function showError(msg) {
+  const el = document.getElementById('setup-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+/* ═══════════════════════════════════════════
+   CALENDAR DATA LOADING
+═══════════════════════════════════════════ */
+async function loadCalendarData() {
+  showScreen('loading');
+  loadTags();
+
+  const now    = new Date();
+  const cutoff = new Date(now - LOOKBACK_DAYS * 864e5);
+  const events = [];
+
+  setProgress(5, 'Fetching events…');
+
+  let pageToken = null;
+  let page = 0;
+
+  do {
+    const params = new URLSearchParams({
+      calendarId:    'primary',
+      timeMin:        cutoff.toISOString(),
+      timeMax:        now.toISOString(),
+      singleEvents:   'true',
+      maxResults:     '2500',
+      orderBy:        'startTime',
+    });
+    if (pageToken) params.set('pageToken', pageToken);
+
+    const r = await apiFetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`
+    );
+    const d = await r.json();
+
+    if (d.error) {
+      showError('Calendar API error: ' + d.error.message);
+      showScreen('setup');
+      return;
+    }
+
+    (d.items || []).forEach(e => events.push(e));
+    pageToken = d.nextPageToken || null;
+    page++;
+    setProgress(5 + Math.min(page * 8, 60), `Loaded ${events.length} events…`);
+  } while (pageToken);
+
+  setProgress(70, 'Processing events…');
+
+  processEvents(events, now);
+  setProgress(100, 'Done');
+
+  // small delay so progress hits 100% visually
+  await new Promise(r => setTimeout(r, 300));
+
+  buildApp();
+  showScreen('app');
+}
+
+function apiFetch(url) {
+  return fetch(url, {
+    headers: { Authorization: `Bearer ${ACCESS_TOKEN}` }
+  });
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('loading-bar').style.width = pct + '%';
+  document.getElementById('loading-status').textContent = msg;
+}
+
+/* ═══════════════════════════════════════════
+   EVENT PROCESSING
+═══════════════════════════════════════════ */
+function extractDomain(email) {
+  if (!email || !email.includes('@')) return null;
+  const host = email.split('@')[1].toLowerCase();
+  // Strip common subdomains for grouping
+  const parts = host.split('.');
+  if (parts.length > 2) {
+    // keep last 2 segments as registered domain (simple heuristic)
+    return parts.slice(-2).join('.');
+  }
+  return host;
+}
+
+function normalizeOrgName(domain) {
+  const name = domain.split('.')[0];
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function clampDuration(rawMin) {
+  if (rawMin <= 0) return 0;
+  return Math.min(Math.max(rawMin, 15), 180); // floor 15, cap 180
+}
+
+function processEvents(events, now) {
+  const d90  = new Date(now - 90  * 864e5);
+  const buckets = {};  // domain -> bucket
+  const monthly = {}; // YYYY-MM -> { mtgs, min }
+
+  for (const e of events) {
+    if (e.status === 'cancelled') continue;
+
+    const title = (e.summary || '').toLowerCase();
+    if (title.includes('ignore') || title.includes('ooo') || title.includes('out of office')) continue;
+    if (e.eventType === 'workingLocation') continue;
+
+    // date/time
+    const startStr = (e.start || {}).dateTime || (e.start || {}).date;
+    const endStr   = (e.end   || {}).dateTime || (e.end   || {}).date;
+    if (!startStr) continue;
+    const startDt = new Date(startStr);
+    const endDt   = new Date(endStr   || startStr);
+    const rawMin  = Math.round((endDt - startDt) / 60000);
+    const durMin  = clampDuration(rawMin);
+    if (durMin === 0) continue;
+
+    // extract external domains from attendees
+    const attendees = e.attendees || [];
+    const externalDomains = new Set();
+
+    for (const a of attendees) {
+      if (a.resource) continue;
+      if (a.self) continue;
+      const email = (a.email || '').toLowerCase();
+      if (INTERNAL_SKIP.some(s => email.includes(s))) continue;
+      const dom = extractDomain(email);
+      if (!dom) continue;
+      if (dom === INTERNAL_DOMAIN) continue;
+      if (dom.includes('google') || dom.includes('zoom') || dom.includes('calendar')) continue;
+      externalDomains.add(dom);
+    }
+
+    if (externalDomains.size === 0) continue;
+
+    // monthly rollup (all external meetings)
+    const monthKey = startDt.toISOString().slice(0, 7);
+    if (!monthly[monthKey]) monthly[monthKey] = { mtgs: 0, min: 0 };
+    monthly[monthKey].mtgs += 1;
+    monthly[monthKey].min  += durMin;
+
+    // per-domain bucketing
+    for (const dom of externalDomains) {
+      if (!buckets[dom]) {
+        buckets[dom] = {
+          org:          normalizeOrgName(dom),
+          domain:       dom,
+          first_seen:   startDt,
+          last_meeting: startDt,
+          hours_window: 0,
+          mtgs_window:  0,
+          hours_90d:    0,
+          mtgs_90d:     0,
+          total_min:    0,
+          monthly_min:  {}, // YYYY-MM -> min
+          titles:       new Set(),
+        };
+      }
+      const b = buckets[dom];
+      if (startDt < b.first_seen)   b.first_seen   = startDt;
+      if (startDt > b.last_meeting) b.last_meeting  = startDt;
+
+      b.hours_window += durMin / 60;
+      b.mtgs_window  += 1;
+      b.total_min    += durMin;
+
+      if (startDt >= d90) {
+        b.hours_90d += durMin / 60;
+        b.mtgs_90d  += 1;
+      }
+
+      if (!b.monthly_min[monthKey]) b.monthly_min[monthKey] = 0;
+      b.monthly_min[monthKey] += durMin;
+
+      if (e.summary) b.titles.add(e.summary);
+    }
+  }
+
+  // Finalize
+  allAccounts = Object.values(buckets).map(b => ({
+    ...b,
+    hours_window: Math.round(b.hours_window * 10) / 10,
+    hours_90d:    Math.round(b.hours_90d    * 10) / 10,
+    titles:       [...b.titles].slice(0, 10),
+  }));
+
+  allAccounts.sort((a, b) => b.hours_window - a.hours_window);
+
+  // monthly series
+  const allMonths = Object.keys(monthly).sort();
+  monthlyData = allMonths.map(m => ({
+    month: m,
+    mtgs:  monthly[m].mtgs,
+    hours: Math.round(monthly[m].min / 60 * 10) / 10,
+  }));
+}
+
+/* ═══════════════════════════════════════════
+   APP BUILDER (called after data ready)
+═══════════════════════════════════════════ */
+function buildApp() {
+  document.getElementById('topbar-user').textContent = USER_EMAIL;
+
+  renderKPIs();
+  renderOverviewCharts();
+  renderAccounts();
+  renderSignals();
+  renderTrends();
+}
+
+function changeWindow() {
+  WINDOW_DAYS = parseInt(document.getElementById('window-select').value);
+  // Re-process with new window — simplest approach: just re-filter from allAccounts
+  // For a proper impl we'd re-process events, but hours_window was set at load time
+  // For demo: update the label and note
+  document.getElementById('ov-window-label').textContent =
+    WINDOW_DAYS === 365 ? '12 months' :
+    WINDOW_DAYS === 90  ? '90 days'   :
+    WINDOW_DAYS === 180 ? '6 months'  : '18 months';
+  renderKPIs();
+}
+
+/* ═══════════════════════════════════════════
+   KPIs
+═══════════════════════════════════════════ */
+function renderKPIs() {
+  const total_hrs  = allAccounts.reduce((s, a) => s + a.hours_window, 0).toFixed(0);
+  const total_mtgs = allAccounts.reduce((s, a) => s + a.mtgs_window, 0);
+  const active90   = allAccounts.filter(a => a.mtgs_90d > 0).length;
+  const top_acct   = allAccounts[0] ? allAccounts[0].org : '—';
+
+  const kpis = [
+    { label: 'Accounts Tracked', value: allAccounts.length, sub: 'external orgs' },
+    { label: 'Total Hours',      value: total_hrs + 'h',    sub: 'relationship time' },
+    { label: 'Total Meetings',   value: total_mtgs,         sub: 'external meetings' },
+    { label: 'Active (90d)',     value: active90,           sub: 'orgs with recent activity' },
+    { label: 'Top Account',      value: top_acct,           sub: 'by hours' },
+  ];
+
+  document.getElementById('kpi-row').innerHTML = kpis.map(k => `
+    <div class="kpi-tile">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value" style="font-size:${k.value.toString().length > 8 ? '1rem' : '1.7rem'}">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('ov-window-label').textContent = LOOKBACK_DAYS + 'd window';
+}
+
+/* ═══════════════════════════════════════════
+   CHART HELPERS
+═══════════════════════════════════════════ */
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: { legend: { display: false } },
+};
+
+const TICK_STYLE = {
+  font: { family: "'IBM Plex Mono'", size: 9 },
+  color: '#555d6b',
+};
+
+function destroyChart(id) {
+  if (charts[id]) { try { charts[id].destroy(); } catch(e){} delete charts[id]; }
+}
+
+function mkChart(id, config) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx.getContext('2d'), config);
+}
+
+/* ═══════════════════════════════════════════
+   OVERVIEW CHARTS
+═══════════════════════════════════════════ */
+function renderOverviewCharts() {
+  const top20t = allAccounts.slice(0, 20);
+  const maxH   = top20t.length ? top20t[0].hours_window : 1;
+
+  // top time (horizontal bar)
+  mkChart('ch-top-time', {
+    type: 'bar',
+    data: {
+      labels: top20t.map(a => a.org),
+      datasets: [{
+        data: top20t.map(a => a.hours_window),
+        backgroundColor: top20t.map((a, i) =>
+          i === 0 ? '#4f8ef7' : i < 4 ? '#2a5fa8' : '#242830'),
+        borderWidth: 0, borderRadius: 2,
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      indexAxis: 'y',
+      aspectRatio: 0.6,
+      scales: {
+        x: { grid: { color: '#181c22' }, ticks: { ...TICK_STYLE } },
+        y: { grid: { display: false }, ticks: { font: { family: "'IBM Plex Sans'", size: 10 }, color: '#8b92a0' } },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}h · ${top20t[ctx.dataIndex].mtgs_window} meetings` } }
+      }
+    }
+  });
+
+  // top meetings
+  const top15m = [...allAccounts].sort((a, b) => b.mtgs_window - a.mtgs_window).slice(0, 15);
+  mkChart('ch-top-mtgs', {
+    type: 'bar',
+    data: {
+      labels: top15m.map(a => a.org),
+      datasets: [{
+        data: top15m.map(a => a.mtgs_window),
+        backgroundColor: '#1e3a6e', borderWidth: 0, borderRadius: 2,
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      indexAxis: 'y',
+      aspectRatio: 0.55,
+      scales: {
+        x: { grid: { color: '#181c22' }, ticks: { ...TICK_STYLE } },
+        y: { grid: { display: false }, ticks: { font: { family: "'IBM Plex Sans'", size: 10 }, color: '#8b92a0' } },
+      },
+    }
+  });
+
+  // monthly hours
+  const last14 = monthlyData.slice(-14);
+  mkChart('ch-monthly', {
+    type: 'bar',
+    data: {
+      labels: last14.map(d => d.month.slice(2)), // "25-01"
+      datasets: [{
+        data: last14.map(d => d.hours),
+        backgroundColor: last14.map((_, i) =>
+          i === last14.length - 1 ? '#4f8ef7' : '#1e3a6e'),
+        borderWidth: 0, borderRadius: 2,
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      aspectRatio: 1.4,
+      scales: {
+        x: { grid: { display: false }, ticks: { ...TICK_STYLE, maxRotation: 45 } },
+        y: { grid: { color: '#181c22' }, ticks: { ...TICK_STYLE } },
+      }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════
+   ACCOUNTS TABLE
+═══════════════════════════════════════════ */
+let acctSortKey = 'hours_window';
+let acctSortDir = -1;
+
+function setStatusFilter(val, btn) {
+  statusFilter = val;
+  document.querySelectorAll('[data-status]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAccounts();
+}
+
+function sortAccounts(key) {
+  if (acctSortKey === key) acctSortDir *= -1;
+  else { acctSortKey = key; acctSortDir = -1; }
+  renderAccounts();
+}
+
+function renderAccounts() {
+  const q = (document.getElementById('acct-search').value || '').toLowerCase();
+  const maxH = allAccounts.length ? allAccounts[0].hours_window : 1;
+
+  let rows = allAccounts.filter(a => {
+    if (q && !a.org.toLowerCase().includes(q) && !a.domain.includes(q)) return false;
+    const t = tags[a.domain] || {};
+    const status = t.status || 'unknown';
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'active90') return a.mtgs_90d > 0;
+    return status === statusFilter;
+  });
+
+  rows.sort((a, b) => {
+    let av = a[acctSortKey]; let bv = b[acctSortKey];
+    if (acctSortKey === 'last_meeting') { av = av?.getTime() || 0; bv = bv?.getTime() || 0; }
+    if (acctSortKey === 'org') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
+    return (av > bv ? -1 : av < bv ? 1 : 0) * acctSortDir;
+  });
+
+  document.getElementById('acct-count').textContent = `${rows.length} accounts`;
+
+  const tbody = document.getElementById('acct-tbody');
+  tbody.innerHTML = rows.map(a => {
+    const t      = tags[a.domain] || {};
+    const status = t.status || 'unknown';
+    const deal   = t.deal   || '';
+    const barW   = Math.round(a.hours_window / maxH * 100);
+    const recencyDot = recency(a.last_meeting);
+
+    return `<tr>
+      <td>
+        <div class="td-org"><span class="dot ${recencyDot}"></span>${a.org}</div>
+        <div class="td-domain">${a.domain}</div>
+      </td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:${barW}%"></div></div>
+          <span class="num-val">${a.hours_window}h</span>
+        </div>
+      </td>
+      <td><span class="num-val">${a.mtgs_window}</span></td>
+      <td><span class="num-val ${a.hours_90d === 0 ? 'num-dim' : ''}">${a.hours_90d}h</span></td>
+      <td><span class="num-val ${a.mtgs_90d === 0 ? 'num-dim' : ''}">${a.mtgs_90d}</span></td>
+      <td><span class="num-val">${fmtDate(a.last_meeting)}</span></td>
+      <td>
+        <span class="badge badge-${status}" onclick="cycleStatus('${a.domain}')">${status}</span>
+      </td>
+      <td>
+        <input class="deal-input" type="text"
+          value="${deal}"
+          placeholder="e.g. $250k"
+          onchange="setDeal('${a.domain}', this.value)"
+          onclick="event.stopPropagation()">
+      </td>
+    </tr>`;
+  }).join('');
+
+  // update sort indicators
+  document.querySelectorAll('.acct-tbl th').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+  });
+}
+
+function cycleStatus(domain) {
+  const cycle = ['unknown', 'prospect', 'customer'];
+  const t = tags[domain] || {};
+  const cur = t.status || 'unknown';
+  const next = cycle[(cycle.indexOf(cur) + 1) % cycle.length];
+  tags[domain] = { ...t, status: next };
+  saveTags();
+  renderAccounts();
+  renderSignals(); // pipeline list updates
+}
+
+function setDeal(domain, val) {
+  tags[domain] = { ...(tags[domain] || {}), deal: val };
+  saveTags();
+  renderSignals();
+}
+
+/* ═══════════════════════════════════════════
+   SIGNALS
+═══════════════════════════════════════════ */
+function renderSignals() {
+  // hot
+  const hot = allAccounts.filter(a => a.mtgs_90d >= 3).slice(0, 15);
+  document.getElementById('hot-list').innerHTML = hot.length
+    ? hot.map(a => {
+        const t = tags[a.domain] || {};
+        return `<div class="signal-row hot">
+          <div class="dot dot-hot" style="flex-shrink:0"></div>
+          <div style="flex:1; min-width:0">
+            <div class="signal-name">${a.org}</div>
+            <div class="signal-domain">${a.domain}</div>
+          </div>
+          <div class="signal-stats">
+            <strong>${a.mtgs_90d}</strong> mtgs · <strong>${a.hours_90d}h</strong><br>
+            Last: ${fmtDate(a.last_meeting)}
+          </div>
+        </div>`;
+      }).join('')
+    : '<div style="font-family:var(--mono); font-size:11px; color:var(--text3); padding:12px 0">No accounts with 3+ meetings in 90 days.</div>';
+
+  // cold
+  const cold = allAccounts.filter(a => a.mtgs_window >= 3 && a.mtgs_90d === 0)
+    .sort((a, b) => b.hours_window - a.hours_window).slice(0, 15);
+  document.getElementById('cold-list').innerHTML = cold.length
+    ? cold.map(a => `<div class="signal-row cold">
+        <div style="flex:1; min-width:0">
+          <div class="signal-name">${a.org}</div>
+          <div class="signal-domain">${a.domain}</div>
+        </div>
+        <div class="signal-stats">
+          <strong>${a.mtgs_window}</strong> mtgs (window)<br>
+          Last: ${fmtDate(a.last_meeting)}
+        </div>
+      </div>`).join('')
+    : '<div style="font-family:var(--mono); font-size:11px; color:var(--text3); padding:12px 0">No accounts have gone cold.</div>';
+
+  // pipeline
+  const pipeline = allAccounts
+    .filter(a => tags[a.domain]?.deal)
+    .sort((a, b) => parseDeal(tags[b.domain]?.deal) - parseDeal(tags[a.domain]?.deal));
+
+  const totalPipeline = pipeline.reduce((s, a) => s + parseDeal(tags[a.domain]?.deal), 0);
+
+  if (pipeline.length === 0) {
+    document.getElementById('pipeline-list').innerHTML =
+      `<div style="font-family:var(--mono); font-size:11px; color:var(--text3)">No deals tagged yet. Go to the Accounts tab and enter Deal $ values to see pipeline influence here.</div>`;
+    return;
+  }
+
+  document.getElementById('pipeline-list').innerHTML = `
+    <div style="font-family:var(--mono); font-size:11px; color:var(--text3); margin-bottom:12px">
+      Total influenced: <span style="color:var(--green); font-size:13px">${fmtMoney(totalPipeline)}</span>
+      across ${pipeline.length} accounts
+    </div>
+    ${pipeline.map(a => {
+      const deal = parseDeal(tags[a.domain]?.deal);
+      const status = tags[a.domain]?.status || 'unknown';
+      return `<div style="display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--border)">
+        <div style="flex:1">
+          <span style="font-weight:500; font-size:12px">${a.org}</span>
+          <span class="badge badge-${status}" style="margin-left:8px">${status}</span>
+        </div>
+        <div style="font-family:var(--mono); font-size:12px; color:var(--green)">${fmtMoney(deal)}</div>
+        <div style="font-family:var(--mono); font-size:10px; color:var(--text3)">${a.mtgs_window} mtgs · ${a.hours_window}h</div>
+      </div>`;
+    }).join('')}`;
+}
+
+function parseDeal(str) {
+  if (!str) return 0;
+  const m = String(str).replace(/[$,\s]/g, '').match(/([\d.]+)([km]?)/i);
+  if (!m) return 0;
+  let n = parseFloat(m[1]);
+  if (m[2].toLowerCase() === 'k') n *= 1000;
+  if (m[2].toLowerCase() === 'm') n *= 1000000;
+  return n;
+}
+
+function fmtMoney(n) {
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
+  if (n >= 1000) return '$' + (n/1000).toFixed(0) + 'K';
+  return '$' + n.toFixed(0);
+}
+
+/* ═══════════════════════════════════════════
+   TRENDS
+═══════════════════════════════════════════ */
+function renderTrends() {
+  const last18 = monthlyData.slice(-18);
+
+  mkChart('ch-trend-mtgs', {
+    type: 'line',
+    data: {
+      labels: last18.map(d => d.month.slice(2)),
+      datasets: [{
+        data: last18.map(d => d.mtgs),
+        borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,0.08)',
+        fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#4f8ef7',
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { grid: { display: false }, ticks: { ...TICK_STYLE, maxRotation: 45 } },
+        y: { grid: { color: '#181c22' }, ticks: { ...TICK_STYLE } },
+      }
+    }
+  });
+
+  mkChart('ch-trend-hrs', {
+    type: 'line',
+    data: {
+      labels: last18.map(d => d.month.slice(2)),
+      datasets: [{
+        data: last18.map(d => d.hours),
+        borderColor: '#3ecf8e', backgroundColor: 'rgba(62,207,142,0.06)',
+        fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#3ecf8e',
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        x: { grid: { display: false }, ticks: { ...TICK_STYLE, maxRotation: 45 } },
+        y: { grid: { color: '#181c22' }, ticks: { ...TICK_STYLE } },
+      }
+    }
+  });
+
+  // top 15 stacked bars
+  const top15 = allAccounts.slice(0, 15);
+  const maxH = top15.length ? top15[0].hours_window : 1;
+
+  document.getElementById('top15-bars').innerHTML = top15.map(a => {
+    const pctFull = (a.hours_window / maxH * 100).toFixed(1);
+    const pct90   = (a.hours_90d   / maxH * 100).toFixed(1);
+    return `<div style="display:flex; align-items:center; gap:12px; margin-bottom:6px">
+      <div style="width:140px; font-size:11px; color:var(--text2); text-align:right;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${a.org}</div>
+      <div style="flex:1; position:relative; height:16px; background:var(--bg3);
+        border-radius:2px; overflow:hidden">
+        <div style="height:100%; width:${pctFull}%; background:var(--border2); border-radius:2px"></div>
+        <div style="position:absolute; top:0; left:0; height:100%; width:${pct90}%;
+          background:var(--accent); opacity:0.8; border-radius:2px"></div>
+      </div>
+      <div style="font-family:var(--mono); font-size:10px; color:var(--text3); white-space:nowrap; width:100px">
+        ${a.hours_window}h / ${a.mtgs_window}m
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════ */
+function recency(dt) {
+  if (!dt) return 'dot-cold';
+  const days = (new Date() - dt) / 864e5;
+  if (days <= 30)  return 'dot-hot';
+  if (days <= 90)  return 'dot-warm';
+  return 'dot-cold';
+}
+
+function fmtDate(dt) {
+  if (!dt) return '—';
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+}
+
+/* ═══════════════════════════════════════════
+   CSV EXPORT
+═══════════════════════════════════════════ */
+function exportCSV() {
+  const cols = [
+    'Account', 'Domain', 'Status', 'Deal $',
+    'Hours (window)', 'Meetings (window)',
+    'Hours (90d)', 'Meetings (90d)',
+    'Last Meeting', 'First Meeting'
+  ];
+  const rows = allAccounts.map(a => {
+    const t = tags[a.domain] || {};
+    return [
+      a.org, a.domain,
+      t.status || 'unknown', t.deal || '',
+      a.hours_window, a.mtgs_window,
+      a.hours_90d,    a.mtgs_90d,
+      fmtDate(a.last_meeting), fmtDate(a.first_seen),
+    ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
+  });
+
+  const csv = [cols.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: `relationship_intel_${new Date().toISOString().slice(0,10)}.csv`
+  });
+  a.click();
+}
+
+/* ═══════════════════════════════════════════
+   GUIDE MODAL
+═══════════════════════════════════════════ */
+function openGuide()  { document.getElementById('guide-modal').classList.add('open'); }
+function closeGuide() { document.getElementById('guide-modal').classList.remove('open'); }
+
+// close on backdrop click
+document.getElementById('guide-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeGuide();
+});
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+loadConfig();
+</script>
+
+</body>
+</html>
