@@ -226,10 +226,6 @@ table.acct-tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
     <div class="setup-body">
       <div class="field-group">
-        <label class="field-label">Your Internal Domain</label>
-        <input id="inp-domain" class="field-input" type="text" placeholder="bigid.com">
-      </div>
-      <div class="field-group">
         <label class="field-label">Lookback Window</label>
         <select id="inp-lookback" class="field-input">
           <option value="90">90 days</option>
@@ -277,6 +273,7 @@ table.acct-tbl{width:100%;border-collapse:collapse;font-size:12px}
         <option value="540">18 months</option>
       </select>
       <button class="btn-sm" onclick="exportCSV()">CSV</button>
+      <button class="btn-sm" onclick="exportSnapshot()">Share Snapshot</button>
       <button class="btn-sm" onclick="exportTags()">Save Tags</button>
       <button class="btn-sm" onclick="document.getElementById('import-input').click()">Load Tags</button>
       <input id="import-input" type="file" accept=".json" style="display:none" onchange="importTags(event)">
@@ -306,6 +303,30 @@ table.acct-tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="panel" style="flex:1">
           <div class="panel-header"><span class="panel-title">Monthly hours</span></div>
           <div class="panel-body"><canvas id="ch-monthly"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEGMENT BREAKDOWN ROW -->
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Hours by segment</span>
+          <span class="panel-meta">customer · prospect · partner · unknown</span>
+        </div>
+        <div class="panel-body" style="display:flex;align-items:center;gap:24px">
+          <div style="width:160px;height:160px;flex-shrink:0"><canvas id="ch-seg-hours"></canvas></div>
+          <div id="seg-hours-legend" style="font-family:var(--mono);font-size:11px;line-height:2.2;color:var(--text2)"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Meetings by segment</span>
+          <span class="panel-meta">customer · prospect · partner · unknown</span>
+        </div>
+        <div class="panel-body" style="display:flex;align-items:center;gap:24px">
+          <div style="width:160px;height:160px;flex-shrink:0"><canvas id="ch-seg-mtgs"></canvas></div>
+          <div id="seg-mtgs-legend" style="font-family:var(--mono);font-size:11px;line-height:2.2;color:var(--text2)"></div>
         </div>
       </div>
     </div>
@@ -452,7 +473,7 @@ table.acct-tbl{width:100%;border-collapse:collapse;font-size:12px}
 /* ══════════════════════════════════════════════
    ▶ CONFIG — set your Client ID once here
 ══════════════════════════════════════════════ */
-const GOOGLE_CLIENT_ID = '556868937449-mc08d7g147b7sing51as61cqrmrp2h9m.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com';
 // ^ paste your OAuth Client ID above — teammates never need to touch this
 
 /* ══════════════════════════════════════════════
@@ -481,13 +502,12 @@ const charts        = {};
 ══════════════════════════════════════════════ */
 function saveTags()  { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tags)); } catch(e){} }
 function loadTags()  { try { tags = JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'); } catch(e){ tags={}; } }
-function saveConfig(domain, lookback) {
-  try { localStorage.setItem(CONFIG_KEY, JSON.stringify({domain, lookback})); } catch(e){}
+function saveConfig(lookback) {
+  try { localStorage.setItem(CONFIG_KEY, JSON.stringify({lookback})); } catch(e){}
 }
 function loadConfig() {
   try {
     const c = JSON.parse(localStorage.getItem(CONFIG_KEY)||'{}');
-    if (c.domain)   document.getElementById('inp-domain').value   = c.domain;
     if (c.lookback) document.getElementById('inp-lookback').value = c.lookback;
   } catch(e){}
 }
@@ -558,7 +578,6 @@ function showView(name, btn) {
    AUTH
 ══════════════════════════════════════════════ */
 function startAuth() {
-  const domain   = document.getElementById('inp-domain').value.trim() || 'bigid.com';
   const lookback = parseInt(document.getElementById('inp-lookback').value) || 365;
   const clientId = GOOGLE_CLIENT_ID;
 
@@ -567,9 +586,8 @@ function startAuth() {
     return;
   }
 
-  INTERNAL_DOMAIN = domain.toLowerCase();
-  LOOKBACK_DAYS   = lookback;
-  saveConfig(domain, lookback);
+  LOOKBACK_DAYS = lookback;
+  saveConfig(lookback);
 
   const client = google.accounts.oauth2.initTokenClient({
     client_id: clientId,
@@ -577,7 +595,10 @@ function startAuth() {
     callback: resp => {
       if (resp.error) { showError('Google auth error: ' + resp.error); return; }
       ACCESS_TOKEN = resp.access_token;
-      fetchUserInfo().then(() => loadCalendarData());
+      fetchUserInfo().then(() => {
+        INTERNAL_DOMAIN = USER_EMAIL.split('@')[1]?.toLowerCase() || 'bigid.com';
+        loadCalendarData();
+      });
     },
     error_callback: err => showError('Auth failed: ' + (err.message || err.type || 'Unknown'))
   });
@@ -672,16 +693,37 @@ function processEvents(events, now) {
     const durMin  = clampDur(Math.round((endDt-startDt)/60000));
     if (!durMin) continue;
     const attendees = e.attendees||[];
-    const extDoms = new Set();
-    for (const a of attendees) {
-      if (a.resource||a.self) continue;
+
+    // Count real (non-resource) attendees for ratio check
+    const realAttendees = attendees.filter(a => !a.resource);
+    const totalReal = realAttendees.length;
+
+    // Build a count of attendees per external domain
+    const domainCounts = {};
+    for (const a of realAttendees) {
+      if (a.self) continue;
       const email = (a.email||'').toLowerCase();
       if (INTERNAL_SKIP.some(s=>email.includes(s))) continue;
       const dom = extractDomain(email);
       if (!dom||dom===INTERNAL_DOMAIN) continue;
       if (/google|zoom|calendar/.test(dom)) continue;
-      extDoms.add(dom);
+      domainCounts[dom] = (domainCounts[dom]||0) + 1;
     }
+
+    // Filter out incidental domains:
+    // If a meeting has 8+ real attendees, a domain must represent at least 15%
+    // of total attendees to count as a real external engagement.
+    // Small meetings (< 8 people) are always counted in full.
+    const LARGE_MEETING_THRESHOLD = 8;
+    const MIN_RATIO = 0.15;
+    const extDoms = new Set(
+      Object.entries(domainCounts)
+        .filter(([, count]) =>
+          totalReal < LARGE_MEETING_THRESHOLD || (count / totalReal) >= MIN_RATIO
+        )
+        .map(([dom]) => dom)
+    );
+
     if (!extDoms.size) continue;
     const mk = startDt.toISOString().slice(0,7);
     if (!monthly[mk]) monthly[mk]={mtgs:0,min:0};
@@ -716,9 +758,10 @@ function processEvents(events, now) {
    BUILD APP
 ══════════════════════════════════════════════ */
 function buildApp() {
-  document.getElementById('topbar-user').textContent = USER_EMAIL;
+  document.getElementById('topbar-user').textContent = `${USER_EMAIL} · ${INTERNAL_DOMAIN}`;
   renderKPIs();
   renderOverviewCharts();
+  renderSegmentCharts();
   renderAccounts();
   renderSignals();
   renderTrends();
@@ -793,6 +836,251 @@ function renderOverviewCharts() {
     scales:{x:{grid:{display:false},ticks:{...TK,maxRotation:45}},
             y:{grid:{color:'#181c22'},ticks:{...TK}}}
   }});
+}
+
+/* ══════════════════════════════════════════════
+   SEGMENT CHARTS
+══════════════════════════════════════════════ */
+function renderSegmentCharts() {
+  const SEG_ORDER  = ['customer','prospect','partner','unknown'];
+  const SEG_COLORS = ['#3ecf8e','#f59e0b','#a78bfa','#2e3440'];
+  const SEG_LABELS = ['Customer','Prospect','Partner','Unknown'];
+
+  const vis = allAccounts.filter(a => (tags[a.domain]?.status||'unknown') !== 'ignore');
+
+  // Aggregate hours and meetings per segment
+  const hrs  = {customer:0, prospect:0, partner:0, unknown:0};
+  const mtgs = {customer:0, prospect:0, partner:0, unknown:0};
+  for (const a of vis) {
+    const s = tags[a.domain]?.status || 'unknown';
+    const key = SEG_ORDER.includes(s) ? s : 'unknown';
+    hrs[key]  += a.hours_window;
+    mtgs[key] += a.mtgs_window;
+  }
+
+  const totalHrs  = SEG_ORDER.reduce((s,k) => s + hrs[k],  0) || 1;
+  const totalMtgs = SEG_ORDER.reduce((s,k) => s + mtgs[k], 0) || 1;
+
+  function donutCfg(dataArr) {
+    return {
+      type: 'doughnut',
+      data: {
+        labels: SEG_LABELS,
+        datasets: [{ data: dataArr, backgroundColor: SEG_COLORS, borderWidth: 0, hoverOffset: 4 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        cutout: '68%',
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` } }
+        }
+      }
+    };
+  }
+
+  mkChart('ch-seg-hours', donutCfg(SEG_ORDER.map(k => Math.round(hrs[k] * 10) / 10)));
+  mkChart('ch-seg-mtgs',  donutCfg(SEG_ORDER.map(k => mtgs[k])));
+
+  // Custom legends
+  function legendHTML(dataArr, suffix, total) {
+    return SEG_ORDER.map((k, i) => {
+      const val = dataArr[i];
+      const pct = total > 0 ? Math.round(val / total * 100) : 0;
+      return `<div style="display:flex;align-items:center;gap:8px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${SEG_COLORS[i]};flex-shrink:0"></div>
+        <span style="color:var(--text2)">${SEG_LABELS[i]}</span>
+        <span style="color:var(--text3);margin-left:auto;padding-left:12px">${val}${suffix} <span style="color:var(--text3);font-size:9px">(${pct}%)</span></span>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('seg-hours-legend').innerHTML =
+    legendHTML(SEG_ORDER.map(k => Math.round(hrs[k] * 10) / 10), 'h', totalHrs);
+  document.getElementById('seg-mtgs-legend').innerHTML =
+    legendHTML(SEG_ORDER.map(k => mtgs[k]), '', totalMtgs);
+}
+
+/* ══════════════════════════════════════════════
+   SNAPSHOT EXPORT
+══════════════════════════════════════════════ */
+function exportSnapshot() {
+  const vis = allAccounts.filter(a => (tags[a.domain]?.status||'unknown') !== 'ignore');
+  const top20 = vis.slice(0, 20);
+  const maxH  = top20.length ? top20[0].hours_window : 1;
+
+  const SEG_COLORS = { customer:'#3ecf8e', prospect:'#f59e0b', partner:'#a78bfa', unknown:'#2e3440' };
+  const BADGE_BG   = { customer:'#0f3326', prospect:'#3d2800', partner:'#2e1f5e', unknown:'#181c22' };
+
+  const segHrs  = {customer:0, prospect:0, partner:0, unknown:0};
+  const segMtgs = {customer:0, prospect:0, partner:0, unknown:0};
+  vis.forEach(a => {
+    const s = tags[a.domain]?.status || 'unknown';
+    const k = s in segHrs ? s : 'unknown';
+    segHrs[k]  += a.hours_window;
+    segMtgs[k] += a.mtgs_window;
+  });
+
+  const totalHrs  = Object.values(segHrs).reduce((s,v)=>s+v,0);
+  const totalMtgs = Object.values(segMtgs).reduce((s,v)=>s+v,0);
+
+  const segKeys = ['customer','prospect','partner','unknown'];
+  const segLabels = ['Customer','Prospect','Partner','Unknown'];
+
+  function segRows(dataObj, suffix) {
+    return segKeys.map((k,i) => {
+      const val = dataObj[k];
+      const pct = totalHrs > 0 ? Math.round(val / (suffix==='h' ? totalHrs : totalMtgs) * 100) : 0;
+      return `<tr>
+        <td style="padding:6px 10px;display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${SEG_COLORS[k]}"></div>
+          ${segLabels[i]}
+        </td>
+        <td style="padding:6px 10px;font-family:monospace;text-align:right">${Math.round(val*10)/10}${suffix}</td>
+        <td style="padding:6px 10px;font-family:monospace;text-align:right;color:#555d6b">${pct}%</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const top20rows = top20.map(a => {
+    const s = tags[a.domain]?.status || 'unknown';
+    const barW = Math.round(a.hours_window / maxH * 100);
+    return `<tr style="border-bottom:1px solid #242830">
+      <td style="padding:7px 12px;font-weight:500">${a.org}</td>
+      <td style="padding:7px 12px;font-family:monospace;font-size:11px;color:#555d6b">${a.domain}</td>
+      <td style="padding:7px 12px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:80px;height:4px;background:#242830;border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${barW}%;background:#4f8ef7;border-radius:2px"></div>
+          </div>
+          <span style="font-family:monospace;font-size:11px">${a.hours_window}h</span>
+        </div>
+      </td>
+      <td style="padding:7px 12px;font-family:monospace;font-size:11px">${a.mtgs_window}</td>
+      <td style="padding:7px 12px">
+        <span style="font-family:monospace;font-size:9px;padding:2px 7px;border-radius:2px;
+          border:1px solid ${SEG_COLORS[s]||'#2e3440'};
+          color:${SEG_COLORS[s]||'#555d6b'};
+          background:${BADGE_BG[s]||'#181c22'};
+          text-transform:uppercase;letter-spacing:0.06em">${s}</span>
+      </td>
+      <td style="padding:7px 12px;font-family:monospace;font-size:11px;color:#555d6b">${fmtDate(a.last_meeting)}</td>
+    </tr>`;
+  }).join('');
+
+  const last12 = monthlyData.slice(-12);
+  const maxMonthH = Math.max(...last12.map(d=>d.hours), 1);
+  const sparkBars = last12.map((d,i) => {
+    const h = Math.round(d.hours / maxMonthH * 60);
+    return `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:4px;width:40px">
+      <div style="font-family:monospace;font-size:9px;color:#555d6b">${d.hours}h</div>
+      <div style="height:${h}px;min-height:2px;width:24px;
+        background:${i===last12.length-1?'#4f8ef7':'#1e3a6e'};border-radius:2px"></div>
+      <div style="font-family:monospace;font-size:9px;color:#555d6b">${d.month.slice(2)}</div>
+    </div>`;
+  }).join('');
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Relationship Intel — ${USER_EMAIL} — ${dateStr}</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"IBM Plex Sans",sans-serif;background:#0a0c0f;color:#e8eaf0;padding:0;font-size:13px;-webkit-font-smoothing:antialiased}
+  .page{max-width:960px;margin:0 auto;padding:32px 24px}
+  .hdr{border-bottom:2px solid #4f8ef7;padding-bottom:16px;margin-bottom:28px}
+  .hdr h1{font-family:"IBM Plex Mono",monospace;font-size:1.1rem;font-weight:500;letter-spacing:-0.02em}
+  .hdr h1 span{color:#4f8ef7}
+  .hdr .meta{font-family:"IBM Plex Mono",monospace;font-size:10px;color:#555d6b;margin-top:5px;letter-spacing:0.06em;text-transform:uppercase}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#242830;border:1px solid #242830;border-radius:4px;overflow:hidden;margin-bottom:24px}
+  .kpi{background:#111418;padding:14px 18px;position:relative}
+  .kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+  .kpi:nth-child(1)::after{background:#4f8ef7}
+  .kpi:nth-child(2)::after{background:#3ecf8e}
+  .kpi:nth-child(3)::after{background:#f59e0b}
+  .kpi:nth-child(4)::after{background:#555d6b}
+  .kpi-lbl{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#555d6b;margin-bottom:7px}
+  .kpi-val{font-family:"IBM Plex Mono",monospace;font-size:1.5rem;font-weight:500;line-height:1}
+  .kpi-sub{font-size:10px;color:#555d6b;margin-top:4px;font-family:"IBM Plex Mono",monospace}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+  .panel{background:#111418;border:1px solid #242830;border-radius:4px;overflow:hidden;margin-bottom:16px}
+  .ph{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #242830;background:#181c22}
+  .pt{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#555d6b}
+  .pb{padding:14px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#555d6b;padding:8px 12px;text-align:left;border-bottom:1px solid #242830;background:#181c22}
+  td{padding:7px 12px;border-bottom:1px solid #181c22;vertical-align:middle}
+  .seg-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #181c22}
+  .footer{margin-top:28px;padding-top:16px;border-top:1px solid #242830;font-family:"IBM Plex Mono",monospace;font-size:10px;color:#555d6b;text-align:center}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hdr">
+    <h1>relationship<span>.</span>intel</h1>
+    <div class="meta">${USER_EMAIL} · Generated ${dateStr} · ${LOOKBACK_DAYS}-day window</div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-lbl">Accounts</div><div class="kpi-val">${vis.length}</div><div class="kpi-sub">external orgs</div></div>
+    <div class="kpi"><div class="kpi-lbl">Total Hours</div><div class="kpi-val">${Math.round(totalHrs)}h</div><div class="kpi-sub">relationship time</div></div>
+    <div class="kpi"><div class="kpi-lbl">Meetings</div><div class="kpi-val">${totalMtgs}</div><div class="kpi-sub">external meetings</div></div>
+    <div class="kpi"><div class="kpi-lbl">Active (90d)</div><div class="kpi-val">${vis.filter(a=>a.mtgs_90d>0).length}</div><div class="kpi-sub">orgs with recent activity</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="ph"><span class="pt">Hours by segment</span></div>
+      <div class="pb">
+        <table><thead><tr><th>Segment</th><th style="text-align:right">Hours</th><th style="text-align:right">Share</th></tr></thead>
+        <tbody>${segRows(segHrs,'h')}</tbody></table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Meetings by segment</span></div>
+      <div class="pb">
+        <table><thead><tr><th>Segment</th><th style="text-align:right">Meetings</th><th style="text-align:right">Share</th></tr></thead>
+        <tbody>${segRows(segMtgs,'')}</tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><span class="pt">Monthly hours (last 12 months)</span></div>
+    <div class="pb">
+      <div style="display:flex;align-items:flex-end;gap:4px;height:100px;padding-top:8px">${sparkBars}</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="ph"><span class="pt">Top 20 accounts by hours</span></div>
+    <div class="pb" style="padding:0">
+      <table>
+        <thead><tr>
+          <th>Account</th><th>Domain</th><th>Hours</th>
+          <th>Meetings</th><th>Status</th><th>Last Meeting</th>
+        </tr></thead>
+        <tbody>${top20rows}</tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">Read-only snapshot · data from ${USER_EMAIL}'s Google Calendar · rel.intel v3</div>
+</div>
+</body></html>`;
+
+  const blob = new Blob([html], {type:'text/html'});
+  Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob),
+    download: `rel_intel_snapshot_${now.toISOString().slice(0,10)}.html`
+  }).click();
+  showToast('Snapshot downloaded — open in any browser to share');
 }
 
 /* ══════════════════════════════════════════════
